@@ -156,11 +156,11 @@ It is formated as:
 
 ```
 <Number of boxes> <frame number>
-<Class> <Confidence> <X> <Y> <Height> <Width>
-<Class> <Confidence> <X> <Y> <Height> <Width>
-<Class> <Confidence> <X> <Y> <Height> <Width>
+<Class> <Confidence> <left> <top> <right> <bottom>
+<Class> <Confidence> <left> <top> <right> <bottom>
+<Class> <Confidence> <left> <top> <right> <bottom>
 <Number of boxes> <frame number>
-<Class> <Confidence> <X> <Y> <Height> <Width>
+<Class> <Confidence> <left> <top> <right> <bottom>
 ...
 ```
 
