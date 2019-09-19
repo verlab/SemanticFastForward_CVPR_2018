@@ -4,7 +4,7 @@
 %> 
 %> Functional call:
 %> @code
-%> [ selectedFrames , errors ] = adaptative_frame_selection_LLC( video_features, ranges, beta, varargin)
+%> [ selectedFrames , errors ] = adaptative_frame_selection_LLC( videoFeatures, ranges, costsMatrixFilename, varargin)
 %> @endcode
 %>
 %> Possible values to varargin argument:
@@ -37,7 +37,6 @@
 %> @param videoFeatures         - VF x W @c double , features of each frame of the video in a matrix format of dimensions VF (number of features) by W (num. frames).
 %> @param ranges                -  4 x N @c int    , matrix of dimension 4 and N ranges of semantic segments.
 %> @param costsMatrixFilename   -  1 X A @c string , complete path and filename with extension to the transitions CostsMatrix MATLAB file.
-%> @param costsMode             -  1 X A @c string , cost mode used to selected new frames [ 'Appearance' | 'Forwardness' | 'Semantic' | 'Shakiness'].
 %> @param varargin              -  1 X A @c string , list of A optional arguments:
 %> - \b Weights                 -  1 x N @c double , vector with the weights to each of the N frames related to their Optical Flow Magnitude.
 %> - \b ShowFigures             - @c boolean       , flag to show imagens during the Sparse Coding processing.
@@ -49,9 +48,9 @@
 %>
 %> @author Michel M. Silva (michelms@dcc.ufmg.br)
 %>
-%> @date 20/09/2017
+%> @date 19/09/2019
 % ========================================================================
-function [ selectedFrames , errors ] = adaptative_frame_selection_LLC( videoFeatures, ranges, costsMatrixFilename, costsMode, varargin)
+function [ selectedFrames , errors ] = adaptative_frame_selection_LLC( videoFeatures, ranges, costsMatrixFilename, varargin)
 
     p = inputParser;
 
@@ -127,7 +126,7 @@ function [ selectedFrames , errors ] = adaptative_frame_selection_LLC( videoFeat
             end
             
             desired = round((final-initial)/ranges(3,i));
-            selectedFramesActual = add_frames_by_cost_matrix(selectedFramesActual, ranges(:,i), costs, costsMode, desired, p.Results.ShowFigures);
+            selectedFramesActual = add_frames_by_cost_matrix(selectedFramesActual, ranges(:,i), costs, desired, p.Results.ShowFigures);
             
             selectedFrames = [ selectedFrames selectedFramesActual];
             errors(i) = reconstructionError;

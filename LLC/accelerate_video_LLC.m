@@ -8,13 +8,8 @@
 %> @endcode
 %>
 %> Possible values to varargin argument:
-%> - \b Descriptor          - @c string       , descriptor mode [ 'Complete' | 'OF' | 'Semantic' | 'Visual' | 'Yolo' | 'Distance' ].
-%> - \b WeightMode          - @c string       , weighted mode [ 'None' | 'Adaptive'| 'Binary'| 'Threshold' | 'CDC' ].
-%> - \b CostsMode           - @c string       , cost mode used to selected new frames  [ 'Appearance' | 'Forwardness' | 'Semantic' | 'Shakiness' ].
 %> - \b Speedup             - @c integer      , speed-up rate desired to accelerate the video.
 %> - \b SpeedupFactor       - @c integer      , speed-up rate factor used to multiply the desired accelerate the video while calling the speed-up video function.
-%> - \b LoadVideoFeatures   - @c boolean      , flag to indicate if the path to the file with the video features exists.
-%> - \b MultiImportance     - @c boolean      , flag to execute the Multi-Importance Semantic approach.
 %> - \b ShowFigures         - @c boolean      , flag to show imagens during the Sparse Coding processing.
 %> - \b Verbose             - @c boolean      , flag to display processing debug messages.
 %> - \b GenerateVideo       - @c boolean      , flag to save the accelerated video in disk.
@@ -45,16 +40,11 @@
 %>
 %> after the frame sampling, based on showFigures value, it saves the video.
 %>
-%> @param experiment        - @c string       , experiment identifier.
+%> @param inputVideo        - @c string       , complete path to input video.
 %> @param semanticExtractor - @c string       , extractor type [ 'pedestrian' | 'face' ]
 %> @param varargin          - 1 X A @c string , list of A optional arguments. 
-%> - \b Descriptor          - @c string       , descriptor mode [ 'Complete' | 'OF' | 'Semantic' | 'Visual' | 'Yolo' ]
-%> - \b WeightMode          - @c string       , weighted mode [ 'Adaptive'| 'Binary'| 'Threshold' | 'CDC' ].
-%> - \b CostsMode           - @c string       , cost mode used to selected new frames [ 'Appearance' | 'Forwardness' | 'Semantic' | 'Shakiness'].
 %> - \b Speedup             - @c integer      , speed-up rate desired to accelerate the video.
 %> - \b SpeedupFactor       - @c integer      , speed-up rate factor used to multiply the desired accelerate the video while calling the speed-up video function.
-%> - \b LoadVideoFeatures   - @c boolean      , flag to indicate if the path to the file with the video features exists.
-%> - \b MultiImportance     - @c boolean      , flag to execute the Multi-Importance Semantic approach.
 %> - \b ShowFigures         - @c boolean      , flag to show imagens during the Sparse Coding processing.
 %> - \b Verbose             - @c boolean      , flag to display processing debug messages.
 %> - \b GenerateVideo       - @c boolean      , flag to save the accelerated video in disk.
@@ -65,20 +55,19 @@
 %>
 %> @authors Michel M. Silva (michelms@dcc.ufmg.br)
 %>
-%> @date 28/08/2017 
+%> @date 19/09/2019 
 %>
 %> @see adaptative_frame_selection_LLC.m
 % ========================================================================
 function [ selectedFrames ] = accelerate_video_LLC( inputVideo , semanticExtractor, varargin )
+
+    addpath('io','etc','features')
 
     %% Input parse.
     p = inputParser;
 
     validSemanticExtractor  = {'face', 'pedestrian'};
     checkSemanticExtractor  = @(x) any(validatestring(x,validSemanticExtractor));
-    
-    validCostsModes         = {'Appearance', 'Forwardness', 'Semantic', 'Shakiness'};
-    checkCostsModes         = @(x) any(validatestring(x,validCostsModes));
     
     addRequired( p , 'semanticExtractor'  , checkSemanticExtractor);
 
@@ -88,14 +77,11 @@ function [ selectedFrames ] = accelerate_video_LLC( inputVideo , semanticExtract
     addOptional( p , 'ShowFigures'        , false , @islogical );
     addOptional( p , 'Verbose'            , true  , @islogical );
     addOptional( p , 'GenerateVideo'      , false , @islogical );
-    addOptional( p , 'MultiImportance'    , true  , @islogical );
-    
-    addOptional( p , 'CostsMode'          , 'Appearance'        , checkCostsModes);
     
     parse(p, semanticExtractor, varargin{:});
         
     %%
-    [videoFolder, fname, ext] = fileparts(inputVideo);
+    [videoFolder, fname, ~] = fileparts(inputVideo);
     prefix = [videoFolder '/' fname];
     
     %% Experiment ID and computer name.k
@@ -110,15 +96,14 @@ function [ selectedFrames ] = accelerate_video_LLC( inputVideo , semanticExtract
     path.in.video              = inputVideo;
     path.in.opticalFlowCSV     = [prefix '.csv'];
     path.in.YoloDesc           = [prefix '_yolo_desc.csv' ];
-
     
     %Out
     path.out.outputDir          = videoFolder;
     path.out.videoFeatures      = [prefix '_video_features_whitening.mat'];
     path.out.costsMatrix        = [prefix '_Costs_' num2str(p.Results.Speedup) 'x.mat'];
     path.out.generalResults     = [ path.out.outputDir '/' 'General_Results.csv' ];
-    path.out.selectedFrames     = [ path.out.outputDir '/' fname '_LLC_EXP_' id.computer '_' num2str(id.experiment, '%04d') '_' p.Results.CostsMode 'Cost_selected_frames.csv'];
-    path.outputVideo        = [ path.out.outputDir '/' fname '_LLC_EXP_' id.computer '_' num2str(id.experiment, '%04d') ];
+    path.out.selectedFrames     = [ path.out.outputDir '/' fname '_LLC_EXP_' id.computer '_' num2str(id.experiment, '%04d') '_selected_frames.csv'];
+    path.out.outputVideo        = [ path.out.outputDir '/' fname '_LLC_EXP_' id.computer '_' num2str(id.experiment, '%04d') ];
     
     % Checking
     if ~check_paths(path);
@@ -133,7 +118,6 @@ function [ selectedFrames ] = accelerate_video_LLC( inputVideo , semanticExtract
     addpath( [ path.in.MIFFcode 'Util' ] );
 
     %% Video features.
-%     if p.Results.LoadVideoFeatures
     if exist(path.out.videoFeatures, 'file') == 2
         myFile = load(path.out.videoFeatures);
         videoFeaturesFile = myFile.videoFeaturesFile;
@@ -148,7 +132,7 @@ function [ selectedFrames ] = accelerate_video_LLC( inputVideo , semanticExtract
     
     %% Calculating semantic and non-semantic speed-up using PSO.
     % ***JVCI Code***.
-    [speedupRates, ~, rangesAndSpeedups, ~, ~, ~] = CalculateSpeedupRates(path.in.semanticExtracted, p.Results.Speedup, 'MultipleThresholds', p.Results.MultiImportance);
+    [speedupRates, ~, rangesAndSpeedups, ~, ~, ~] = CalculateSpeedupRates(path.in.semanticExtracted, p.Results.Speedup, 'MultipleThresholds', true);
     ranges = AddNonSemanticRanges(rangesAndSpeedups, speedupRates, 1, nFrames, 150);
     % ***JVCI Code***.
     
@@ -163,7 +147,7 @@ function [ selectedFrames ] = accelerate_video_LLC( inputVideo , semanticExtract
     weights = get_weights_CDC( OF' );
     
     %% Frame Selection.
-    selectedFrames = adaptative_frame_selection_LLC(videoFeatures, ranges, path.out.costsMatrix , p.Results.CostsMode, 'ShowFigures', p.Results.ShowFigures, ...
+     selectedFrames = adaptative_frame_selection_LLC(videoFeatures, ranges, path.out.costsMatrix , 'ShowFigures', p.Results.ShowFigures, ...
         'Verbose', p.Results.Verbose, 'Weights', weights, 'SpeedupFactor',p.Results.SpeedupFactor);
     
     message_handle('S', sprintf('Final Video Speed-up: %f',nFrames/size(selectedFrames,2)),'ExtraSpace',true);
@@ -181,5 +165,7 @@ function [ selectedFrames ] = accelerate_video_LLC( inputVideo , semanticExtract
     if p.Results.GenerateVideo
         save_accelerated_video( path.in.video , path.out.outputVideo , selectedFrames );
     end
+    
+    rmpath('io','etc','features', path.in.MIFFcode, [ path.in.MIFFcode 'SemanticScripts' ], [ path.in.MIFFcode 'PSOScripts' ], [ path.in.MIFFcode 'Util' ] );
     
 end

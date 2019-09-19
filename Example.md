@@ -2,6 +2,8 @@
 
 #### 1.1. Go to the project folder and run:
 ```bash
+git submodule update --init --recursive
+
 git submodule update --recursive --remote
 
 SPARSE_SAMPLING=$PWD

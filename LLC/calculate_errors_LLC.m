@@ -4,7 +4,7 @@
 %> 
 %> Function call:
 %> @code
-%> [ total_error, reconstructionTerm , localityTerm ] = calculate_errors_LLC ( dictionary, representation, coeff, lambda )
+%> [ total_error, reconstructionTerm , localityTerm ] = calculate_errors_LLC ( dictionary, representation, coeff, lambda, weights )
 %> @endcode
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -40,7 +40,7 @@
 %>
 %> @author Michel M. Silva (michelms@dcc.ufmg.br)
 %>
-%> @date   06/09/2017
+%> @date   19/09/2019
 % ========================================================================
 function [ total_error, reconstructionTerm , localityTerm ] = calculate_errors_LLC ( dictionary, representation, coeff, lambda , weights )
 
@@ -109,4 +109,61 @@ function [ distances ] = distance_samples2dictionaryBases( dictionary, samples )
     XX = sum(samples.*samples, 2);
     BB = sum(dictionary.*dictionary, 2);
     distances  = repmat(XX, 1, nbase)-2*samples*dictionary'+repmat(BB', nframe, 1);
+end
+
+% ========================================================================
+%> @brief Computes the reconstruction error of the sample X using the coeff elements of the dictionary and the sparsity term of the Sparse Coding solution given by the coeff.
+%>
+%> @param dictionary     - M x d @c double , dictionary in a matrix form with M words in a d-dim space.
+%> @param representation - 1 x d @c double , sample vector in a d-dim space.
+%> @param coeff          - 1 x M @c double , coeff vector related to activations of the dictionary bases.
+%>
+%> @retval reconstructionError - @c double , square sum of the reconstruction error.
+%> @retval sparsityTerm        - @c double , L1 norm of the spare coeff vector.
+%>
+%> @author Michel M. Silva (michelms@dcc.ufmg.br)
+%>
+%> @date 21/08/2017
+% ========================================================================
+function [ reconstructionError , sparsityTerm ] = calculate_errors ( dictionary , representation , coeff )
+
+    reconstructionError = reconstruction_error(dictionary, representation, coeff);
+    sparsityTerm = sparsity_term(coeff);
+
+end
+
+% ========================================================================
+%> @brief Calculates the reconstruction error of the sample X using the coeff elements of the dictionary.
+%>
+%> @param dictionary     - M x d @c double , dictionary in a matrix form with M words in a d-dim space.
+%> @param representation - 1 x d @c double , sample vector in a d-dim space.
+%> @param coeff          - 1 x M @c double , coeff vector related to activations of the dictionary bases.
+%>
+%> @retval error - @c double , square sum of the errors.
+%>
+%> @author Michel M. Silva (michelms@dcc.ufmg.br)
+%>
+%> @date 03/04/2017
+% ========================================================================
+function [ error ] = reconstruction_error( dictionary , representation , coeff )
+    
+    error = sum((representation - dictionary * coeff).^2);
+
+end
+
+% ========================================================================
+%> @brief Calculates the sparsity term of the Sparse Coding solution.
+%>
+%> @param coeff      - 1 x M @c double , coeff vector related to activations of the dictionary bases.
+%>
+%> @retval sparsity - @c double , L1 norm of the coeff vector.
+%>
+%> @author Michel M. Silva (michelms@dcc.ufmg.br)
+%>
+%> @date 21/08/2017
+% ========================================================================
+function [ sparsity ] = sparsity_term( coeff )
+    
+    sparsity = norm(coeff, 1);
+
 end

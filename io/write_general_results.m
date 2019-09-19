@@ -39,7 +39,7 @@
 %>
 %> @author Michel M. Silva (michelms@dcc.ufmg.br)
 %>
-%> @date 20/09/2017 
+%> @date 19/09/2019
 % ========================================================================
 function checked = write_general_results ( filename , id, experiment, experimentType, semanticExtractor, inputParse )
 
@@ -55,8 +55,8 @@ function checked = write_general_results ( filename , id, experiment, experiment
     LogicalStr = {'false', 'true'};
     date = log_line_prefix;
     
-    newEntry = [num2str(id.experiment) ',' experiment ',' experimentType ',' semanticExtractor ',' inputParse.Results.CostsMode ',' ...
-        LogicalStr{inputParse.Results.MultiImportance + 1} ',' id.computer ',' num2str(inputParse.Results.Speedup) ',' num2str(inputParse.Results.SpeedupFactor) ',' date(2:end-4) '\n'];
+    newEntry = [num2str(id.experiment) ',' experiment ',' experimentType ',' semanticExtractor ',' 'Appearance' ',' ...
+        'true' ',' id.computer ',' num2str(inputParse.Results.Speedup) ',' num2str(inputParse.Results.SpeedupFactor) ',' date(2:end-4) '\n'];
     
     fprintf(fid, newEntry);
     checked = ~fclose(fid);

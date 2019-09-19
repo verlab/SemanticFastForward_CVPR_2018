@@ -4,7 +4,7 @@
 %> 
 %> Functional call:
 %> @code
-%> [ selectedFrames ] = add_frames_by_cost_matrix ( preselectedFrames, costsMatrixFilename, costsMode, totalFrames , showImages  );
+%> [ selectedFrames ] = add_frames_by_cost_matrix ( preselectedFrames, costsMatrixFilename, totalFrames , showImages  );
 %> @endcode
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -31,16 +31,15 @@
 %> @param preselectedFrames     - 1 x F @c int  , selected frames to insert transitions.
 %> @param range                 - 4 x 1 @c int  , matrix of dimension 4 and 1.
 %> @param costs                 - costs matrix
-%> @param costsMode             - @c string     , cost mode - {appearance_cost semantic_cost shakiness_cost}
 %> @param totalFrames           - @c int        , desired final number of frames.
 %> @param showImages            - @c boolean    , 
 %>
 %> @retval selectedFrames       - 1 x M @c int  , vector with the M selected frames.
 %>
 %> @author Felipe Cadar Chamone (cadar@dcc.ufmg.br)
-%> @date 18/09/2017 
+%> @date 19/09/2019
 % ========================================================================
-function [ selectedFrames ] = add_frames_by_cost_matrix ( preselectedFrames, range, costs, costsMode, totalFrames , showImages )
+function [ selectedFrames ] = add_frames_by_cost_matrix ( preselectedFrames, range, costs, totalFrames , showImages )
 
     %Add frames to use cost matrix
     selectedFrames = preselectedFrames;
@@ -64,25 +63,15 @@ function [ selectedFrames ] = add_frames_by_cost_matrix ( preselectedFrames, ran
         figure(10); plot(selectedFrames, '.r');title('Selected Frames Before Using Costs');xlabel('Accelerated Video Frames');ylabel('Original Video Frames');
         figure(20); plot(selectedFrames(2:end) - selectedFrames(1:end-1), 'r');title('Distance Between Frames Before Using Costs');xlabel('Frame Index');ylabel('Distances');
     end
-    
-    %% Select cost.
-    switch costsMode
-        case 'Appearance'
-            costsMatrix = costs.appearance_cost;
-        case 'Semantic'
-            costsMatrix = costs.semantic_cost;
-        case 'Shakiness'
-            costsMatrix = costs.shakiness_cost;
-        case 'Forwardness'
-            costsMatrix = costs.forwardness_cost;
-    end
-    
+        
     % Frames to achieve desired speedUp
     frameCredit = totalFrames - length(selectedFrames);
 %     message_handle('I', sprintf('Adding %i frames\n', frameCredit));
     
+    costsMatrix = costs.appearance_cost;
+    
     if showImages == true
-        costsList = get_transition_costs(selectedFrames, costsMatrix);
+        costsList = get_transition_costs(selectedFrames, costsMatrix, range);
         figure(50); plot(selectedFrames(1:end-1),costsList,'r'); title('Costs Between Frames'); xlabel('Frames');ylabel('Costs');
     end
        
@@ -123,7 +112,7 @@ function [ selectedFrames ] = add_frames_by_cost_matrix ( preselectedFrames, ran
     end
     
     if showImages == true
-        costsList = get_transition_costs(selectedFrames, costsMatrix);
+        costsList = get_transition_costs(selectedFrames, costsMatrix, range);
         figure(30); plot(selectedFrames, '.b');title('Selected Frames Using Costs');xlabel('Accelerated Video Frames');ylabel('Original Video Frames');
         figure(40); plot(selectedFrames(2:end) - selectedFrames(1:end-1), 'b');title('Distance Between Frames Using Costs');xlabel('Frame Index');ylabel('Distances');
         figure(50); hold on; plot(selectedFrames(1:end-1),costsList, '.b'); 
