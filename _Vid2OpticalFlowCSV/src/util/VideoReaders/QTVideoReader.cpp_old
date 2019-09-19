@@ -1,0 +1,192 @@
+#define QT_SDK
+
+#include "stdafx.h"
+#pragma  warning (disable : 4005)
+#include "QTVideoReader.h"
+#include <QTML.h>
+#include <Movies.h>
+#include <MediaHandlers.h>
+#include <QuickTimeComponents.h>
+#include <MoviesFormat.h>
+
+bool QTVideoReader::QT_INITIALIZED = false;
+
+bool QTVideoReader::Open(const char* filename)
+{
+	_frameBuffer4Ch = NULL;
+	_numFrames = -1;
+
+	if(!QT_INITIALIZED){
+		if(InitializeQTML(NULL) != noErr){
+			_numFrames = -1;
+			_videoReader = NULL;
+			return false;
+		}
+
+		if(EnterMovies() != noErr){
+			TerminateQTML();
+			_numFrames = -1;
+			_videoReader = NULL;
+			return false;
+		}
+
+		QT_INITIALIZED = true;
+	}
+
+	char  fpath[1000];
+	memset(fpath, 0, 1000);
+	strcpy (fpath, filename);
+	c2pstr(fpath);
+
+	FSSpec sfFile;
+	if(FSMakeFSSpec(0, 0L, (unsigned char*)fpath, &sfFile) != noErr){
+		ExitMovies();
+		TerminateQTML();
+		return false;
+	}
+
+	if(OpenMovieFile (&sfFile, &_fileId, fsRdPerm) != noErr){
+		ExitMovies();
+		TerminateQTML();
+		return false;
+	}
+
+	Movie vr_temp = (Movie)_videoReader; 
+	if(NewMovieFromFile(&vr_temp, _fileId, NULL, NULL,newMovieActive, NULL) != noErr){
+		ExitMovies();
+		TerminateQTML();
+		return false;
+	}
+	_videoReader = vr_temp;
+
+	_fileId = _fileId;
+
+	OSType whichMediaType = VIDEO_TYPE;
+	for(long f = 0, theTime = 0 ; theTime != -1 ; ++f )
+	{
+		GetMovieNextInterestingTime((Movie)_videoReader,f ? nextTimeMediaSample : nextTimeMediaSample|nextTimeEdgeOK,
+			1,&whichMediaType,theTime,0,&theTime,NULL);
+		_framesTime.push_back(theTime);
+		if(f >= 100000)
+			break;
+	}
+
+	_numFrames = (int)_framesTime.size() - 1;
+
+	_frameRate = GetMovieTimeScale((Movie)_videoReader);
+	_videoLength = GetMovieDuration((Movie)_videoReader);
+
+	Rect r;
+	GetMovieBox((Movie)_videoReader,&r);
+	int imgWidth = r.right - r.left;
+	int imgHeight =  r.bottom - r.top;
+
+	_frameBuffer4Ch = cvCreateImageHeader(cvSize(imgWidth,imgHeight), 8, 4);
+	_frameBuffer3Ch = cvCreateImage(cvSize(imgWidth,imgHeight), 8, 3);
+
+	GWorldPtr temp_ptr = (GWorldPtr)_graphicsPtr;
+	// create gworld for decompressed image
+	if(QTNewGWorld (&temp_ptr, k32ARGBPixelFormat, &r, nil, nil, 0) != noErr){
+		ExitMovies();
+		TerminateQTML();
+		return false;
+	}
+	_graphicsPtr = temp_ptr;
+
+	SetMovieGWorld ((Movie)_videoReader, (GWorldPtr)_graphicsPtr, nil);
+
+	_nextFrame2Read = 0;
+	//GetFrame(0);
+
+	return true;
+}
+
+QTVideoReader::~QTVideoReader(void)
+{
+	CloseMovieFile(_fileId);
+	if(_frameBuffer4Ch)
+		cvReleaseImageHeader(&_frameBuffer4Ch);
+
+	if(_frameBuffer3Ch)
+		cvReleaseImage(&_frameBuffer3Ch);
+
+	if(QT_INITIALIZED){
+		ExitMovies();
+		TerminateQTML();
+		QT_INITIALIZED = false;
+	}
+}
+
+int QTVideoReader::GetTotalFrames()
+{
+	return _numFrames;
+}
+
+int QTVideoReader::GetFPS()
+{
+	return cvRound(_frameRate);
+}
+
+bool QTVideoReader::SetFrameNum(int frame_num)
+{
+	if(frame_num > _numFrames)
+		return false;
+
+	OSErr myErr;
+	SetMovieTimeValue ((Movie)_videoReader, _framesTime[frame_num]);
+	myErr = GetMoviesError();
+	if(myErr)
+		return false;
+	UpdateMovie ((Movie)_videoReader);
+	myErr = GetMoviesError();
+	if(myErr)
+		return false;
+	MoviesTask ((Movie)_videoReader, 0L);
+	myErr = GetMoviesError();
+	if(myErr)
+		return false;
+
+	_nextFrame2Read = frame_num;
+
+	return true;
+}
+
+IplImage* QTVideoReader::GetFrame()
+{
+	SetFrameNum(_nextFrame2Read);
+
+	PixMapHandle pm = GetGWorldPixMap((GWorldPtr)_graphicsPtr);
+	if(pm == NULL)
+		return NULL;
+
+	LockPixels(pm);
+
+	_frameBuffer4Ch->imageData = GetPixBaseAddr(pm);
+	MyConvert(_frameBuffer4Ch, _frameBuffer3Ch);
+
+	// allow QuickTime to access the buffer again
+	UnlockPixels (pm);
+
+	++_nextFrame2Read;
+
+	return _frameBuffer3Ch;
+}
+
+void QTVideoReader::MyConvert(IplImage* inp, IplImage* out)
+{
+	int width = inp->width;
+	int height = inp->height;
+
+	uchar *src, *dst;
+	for(int j=0; j<height; ++j)
+	{
+		src = cvPtr2D(inp, j, 0);
+		dst = cvPtr2D(out, j, 0);
+		for(int i=0; i<width; ++i, src+=4, dst+=3)
+		{
+			dst[0] = src[3];	
+			dst[1] = src[2];
+			dst[2] = src[1];
+		}
+	}
+}
