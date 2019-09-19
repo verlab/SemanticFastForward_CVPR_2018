@@ -23,14 +23,21 @@ cd Example
 wget www.verlab.dcc.ufmg.br/semantic-hyperlapse/data/video-example/example.mp4
 ```
 
-### 3. Extract the optical flow information (in Windows CMD). 
+### 3. Extract the optical flow information. 
 
-Usage: ` Vid2OpticalFlowCSV.exe -v <video_file> -c <config_file> -o <output_file>`
+In the _Vid2OpticalFlowCSV folder, compile the code using the command
 ```
-Vid2OpticalFlowCSV.exe -v example.mp4 -c default-config.xml -o example.csv
+make
 ```
 
-The output file name must be the same name of the input video using the extesion ".csv". Save the output file in the same folder of the `example.mp4` in linux.
+Then calculate the optical flow of the input video:
+
+Usage: `optflow -v <video_file> -c <config_file> -o <output_file>`
+```
+optflow -v example.mp4 -c default-config.xml -o example.csv
+```
+
+The output file name must be the same name of the input video using the extesion ".csv". Save the output file in the same folder of the `example.mp4`.
 
 
 ### 4. Extract semantic information from video with "_SemanticFastForward_JVCI_2018/SemanticScripts/ExtractAndSave.m". Output file will be placed on the input video folder, with video file name, followed by the semantic extractor and the suffix "extracted.mat". Example: "example_face_extracted.mat".

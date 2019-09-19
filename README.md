@@ -67,12 +67,12 @@ The project processing is decribed by the following flowchart:
 
     The first step processing is to estimate the Optical Flow (OF) of the input video. 
 
-    1. First, you should download the [Poleg et al. 2014](http://www.cs.huji.ac.il/~peleg/papers/cvpr14-egoseg.pdf) Flow Estimator code from the [link](http://www.vision.huji.ac.il/egoseg/EgoSeg1.2.zip).
-    2. Navigate to the download folder and unzip the code.
-    3. Into the Vid2OpticalFlowCSV\Example folder, run the command:
+    1. The folder _Vid2OpticalFlowCSV contains the modified [Poleg et al. 2014](http://www.cs.huji.ac.il/~peleg/papers/cvpr14-egoseg.pdf) Flow Estimator code from the [link](http://www.vision.huji.ac.il/egoseg/EgoSeg1.2.zip) to run in the Linux system.
+    2. Navigate to the folder compile the code.
+    3. Into the Vid2OpticalFlowCSV folder, run the command:
 
 ```bash
-Vid2OpticalFlowCSV.exe -v < video_filename > -c < config.xml > -o < output_filename.csv >
+optflow -v < video_filename > -c < config.xml > -o < output_filename.csv >
 ```
 
 | Options                     | Description                         | Type     | Example                       |
